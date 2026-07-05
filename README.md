@@ -31,8 +31,8 @@ mvn clean verify
 
 This builds `test-jcl`, then `jcl-core`, runs unit tests, and produces:
 
-- `core/target/jcl-core-2.9-SNAPSHOT.jar`
-- `test-jcl/target/test-jcl-2.9-SNAPSHOT.jar`
+- `core/target/jcl-core-*.jar`
+- `test-jcl/target/test-jcl-*.jar`
 
 ## Maven dependency
 
@@ -40,7 +40,7 @@ This builds `test-jcl`, then `jcl-core`, runs unit tests, and produces:
 <dependency>
     <groupId>io.github.connellite</groupId>
     <artifactId>jcl-core</artifactId>
-    <version>2.9-SNAPSHOT</version>
+    <version>3.0</version>
 </dependency>
 ```
 
@@ -182,7 +182,7 @@ Exported packages: `io.github.connellite.jcl`, `.context`, `.proxy`, `.cloner`, 
 
 When using CGLIB or reflection-heavy features on the module path, you may need `--add-opens` (the project's tests use opens on `java.lang` and `java.lang.reflect`).
 
-## What's changed in this fork (2.9-SNAPSHOT)
+## What's changed in this fork
 
 - Package rename: `org.xeustechnologies.jcl` → `io.github.connellite.jcl`
 - Java 11 baseline with `module-info.java`
