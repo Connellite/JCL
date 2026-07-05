@@ -75,7 +75,7 @@ public class XmlContextLoader implements JclContextLoader {
     private final String file;
     private final JclContext jclContext;
 
-    private final List<PathResolver> pathResolvers = new ArrayList<PathResolver>();
+    private final List<PathResolver> pathResolvers = new ArrayList<>();
 
     private final transient Logger logger = LoggerFactory.getLogger(XmlContextLoader.class);
 

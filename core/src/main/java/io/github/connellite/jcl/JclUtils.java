@@ -36,7 +36,7 @@ import io.github.connellite.jcl.proxy.ProxyProviderFactory;
 @SuppressWarnings("unchecked")
 public class JclUtils {
 
-    public static Object createProxy(Object object, Class superClass, Class[] interfaces, ClassLoader cl) {
+    public static Object createProxy(Object object, Class<?> superClass, Class<?>[] interfaces, ClassLoader cl) {
         return ProxyProviderFactory.create().createProxy( object, superClass, interfaces, cl );
     }
 
@@ -48,7 +48,7 @@ public class JclUtils {
      * @param clazz
      * @return castable
      */
-    public static Object toCastable(Object object, Class clazz) {
+    public static Object toCastable(Object object, Class<?> clazz) {
         return createProxy( object, clazz, new Class[] { clazz }, null );
     }
 
@@ -61,7 +61,7 @@ public class JclUtils {
      *            []
      * @return castable
      */
-    public static Object toCastable(Object object, Class[] clazz) {
+    public static Object toCastable(Object object, Class<?>[] clazz) {
         return createProxy( object, clazz[0], clazz, null );
     }
 
@@ -73,7 +73,7 @@ public class JclUtils {
      * @param cl
      * @return castable
      */
-    public static Object toCastable(Object object, Class clazz, ClassLoader cl) {
+    public static Object toCastable(Object object, Class<?> clazz, ClassLoader cl) {
         return createProxy( object, clazz, new Class[] { clazz }, cl );
     }
 
@@ -86,7 +86,7 @@ public class JclUtils {
      * @param cl
      * @return castable
      */
-    public static Object toCastable(Object object, Class[] clazz, ClassLoader cl) {
+    public static Object toCastable(Object object, Class<?>[] clazz, ClassLoader cl) {
         return createProxy( object, clazz[0], clazz, cl );
     }
 
@@ -133,18 +133,14 @@ public class JclUtils {
         Object clone = null;
 
         try {
-            // Increased buffer size
             ByteArrayOutputStream bos = new ByteArrayOutputStream( 5120 );
-            ObjectOutputStream out = new ObjectOutputStream( bos );
-            out.writeObject( original );
-            out.flush();
-            out.close();
+            try (ObjectOutputStream out = new ObjectOutputStream( bos )) {
+                out.writeObject( original );
+            }
 
-            ObjectInputStream in = new ObjectInputStream( new ByteArrayInputStream( bos.toByteArray() ) );
-            clone = in.readObject();
-
-            in.close();
-            bos.close();
+            try (ObjectInputStream in = new ObjectInputStream( new ByteArrayInputStream( bos.toByteArray() ) )) {
+                clone = in.readObject();
+            }
         } catch (Exception e) {
             throw new JclException( e );
         }

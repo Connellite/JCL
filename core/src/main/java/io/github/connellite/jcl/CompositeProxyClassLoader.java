@@ -43,9 +43,9 @@ public class CompositeProxyClassLoader extends ProxyClassLoader {
 		super();
 	}
 
-	@SuppressWarnings("rawtypes") 
-	public Class loadClass(String className, boolean resolveIt) {
-		Class result = null;
+	@Override
+	public Class<?> loadClass(String className, boolean resolveIt) {
+		Class<?> result = null;
 		Iterator<ProxyClassLoader> iterator = proxyClassLoaders.iterator();
 		while (result == null && iterator.hasNext()) {
 			result = iterator.next().loadClass(className, resolveIt);
@@ -73,8 +73,7 @@ public class CompositeProxyClassLoader extends ProxyClassLoader {
 	}
 
 	/**
-	 * @return
-	 * @see java.util.List#isEmpty()
+	 * @return {@code true} if this composite has no delegate loaders
 	 */
 	public boolean isEmpty() {
 		return proxyClassLoaders.isEmpty();

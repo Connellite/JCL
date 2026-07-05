@@ -32,7 +32,7 @@ import io.github.connellite.jcl.exception.JclContextException;
  * 
  */
 public class JclContext {
-    private static final Map<String, JarClassLoader> loaders = new ConcurrentHashMap<String, JarClassLoader>();
+    private static final Map<String, JarClassLoader> loaders = new ConcurrentHashMap<>();
     public static final String DEFAULT_NAME = "jcl";
 
     public JclContext() {

@@ -83,7 +83,7 @@ public class ConcurrentLoadClassTest {
     }
 
     private static final class NoopLoader extends ProxyClassLoader {
-        public Class loadClass(String className, boolean resolveIt) {
+        public Class<?> loadClass(String className, boolean resolveIt) {
             return null;
         }
 

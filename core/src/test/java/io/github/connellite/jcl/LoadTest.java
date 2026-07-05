@@ -19,10 +19,7 @@ import io.github.connellite.jcl.test.TestInterface;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.InvocationTargetException;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 @SuppressWarnings("all")
@@ -32,15 +29,15 @@ public class LoadTest extends TestCase {
     private final transient Logger logger = LoggerFactory.getLogger(LoadTest.class);
 
     @Test
-    public void testWithResourceName() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    public void testWithResourceName() throws Exception {
         JarClassLoader jc = new JarClassLoader( new String[] { "./target/test-jcl.jar" } );
 
         // New class
-        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
 
         // Locally loaded
-        testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
     }
 
@@ -74,45 +71,42 @@ public class LoadTest extends TestCase {
     }
 
     @Test
-    public void testWithClassFolder() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    public void testWithClassFolder() throws Exception {
         JarClassLoader jc = new JarClassLoader( new String[] { "./target/test-jcl.jar" } );
 
-        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
     }
 
     @Test
-    public void testWithUrl() throws MalformedURLException, InstantiationException, IllegalAccessException,
-            ClassNotFoundException {
+    public void testWithUrl() throws Exception {
         // URL url = new URL("http://localhost:8080/blank/test-jcl.jar");
         File f = new File( "./target/test-jcl.jar" );
 
         JarClassLoader jc = new JarClassLoader( new URL[] { f.toURI().toURL() } );
-        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
     }
 
     @Test
-    public void testWithInputStream() throws InstantiationException, IllegalAccessException, ClassNotFoundException,
-            IOException {
-        FileInputStream fis = new FileInputStream( "./target/test-jcl.jar" );
-        JarClassLoader jc = new JarClassLoader( new FileInputStream[] { fis } );
-        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
-        assertNotNull( testObj );
-        fis.close();
+    public void testWithInputStream() throws Exception {
+        try (FileInputStream fis = new FileInputStream( "./target/test-jcl.jar" )) {
+            JarClassLoader jc = new JarClassLoader( new FileInputStream[] { fis } );
+            Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
+            assertNotNull( testObj );
+        }
     }
 
     @Test
-    public void testAddingClassSources() throws InstantiationException, IllegalAccessException, ClassNotFoundException {
+    public void testAddingClassSources() throws Exception {
         JarClassLoader jc = new JarClassLoader();
         jc.add( "./target/test-jcl.jar" );
-        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
     }
 
     @Test
-    public void testChangeClassLoadingOrder() throws InstantiationException, IllegalAccessException,
-            ClassNotFoundException {
+    public void testChangeClassLoadingOrder() throws Exception {
         JarClassLoader jc = new JarClassLoader();
         jc.getSystemLoader().setOrder( 1 );
         jc.getParentLoader().setOrder( 3 );
@@ -121,7 +115,7 @@ public class LoadTest extends TestCase {
         jc.add( "./target/test-classes" );
 
         // Should be loaded from system
-        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        Object testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
     }
 
@@ -175,9 +169,7 @@ public class LoadTest extends TestCase {
     }
 
     @Test
-    public void testUnloading() throws IOException, InstantiationException, IllegalAccessException,
-            ClassNotFoundException, IllegalArgumentException, SecurityException, InvocationTargetException,
-            NoSuchMethodException {
+    public void testUnloading() throws Exception {
         JarClassLoader jc = new JarClassLoader( new String[] { "./target/test-jcl.jar" } );
 
         Object testObj = null;
@@ -185,7 +177,7 @@ public class LoadTest extends TestCase {
         jc.unloadClass( "io.github.connellite.jcl.test.Test" );
 
         try {
-            testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+            testObj = jc.loadClass( "io.github.connellite.jcl.test.Test" ).getDeclaredConstructor().newInstance();
 
             // Must have been loaded by a CL other than JCL-Local
             Assert.assertFalse( testObj.getClass().getClassLoader().equals( "io.github.connellite.jcl.JarClassLoader" ) );
@@ -250,8 +242,7 @@ public class LoadTest extends TestCase {
     }
 
     //@Test
-    public void testDefaultContextLoader() throws InstantiationException, IllegalAccessException,
-            ClassNotFoundException {
+    public void testDefaultContextLoader() throws Exception {
         JarClassLoader jc = new JarClassLoader( new String[] { "./target/test-jcl.jar" } );
 
         try {
@@ -270,7 +261,8 @@ public class LoadTest extends TestCase {
         contextLoader.loadContext();
 
         // Test context
-        Object testObj = JclContext.get().loadClass( "io.github.connellite.jcl.test.Test" ).newInstance();
+        Object testObj = JclContext.get().loadClass( "io.github.connellite.jcl.test.Test" )
+                .getDeclaredConstructor().newInstance();
         assertNotNull( testObj );
         assertEquals( "io.github.connellite.jcl.JarClassLoader", testObj.getClass().getClassLoader().getClass()
                 .getName() );

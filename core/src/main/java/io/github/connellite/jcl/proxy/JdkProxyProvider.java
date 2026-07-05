@@ -30,7 +30,7 @@ import io.github.connellite.jcl.JclUtils;
  * 
  */
 public class JdkProxyProvider implements ProxyProvider {
-    private class JdkProxyHandler implements InvocationHandler {
+    private static class JdkProxyHandler implements InvocationHandler {
         private final Object delegate;
 
         public JdkProxyHandler(Object delegate) {
@@ -48,8 +48,8 @@ public class JdkProxyProvider implements ProxyProvider {
         }
     }
 
-    public Object createProxy(Object object, Class superClass, Class[] interfaces, ClassLoader cl) {
-        JdkProxyHandler handler = new JdkProxyHandler( object );
+    public Object createProxy(Object object, Class<?> superClass, Class<?>[] interfaces, ClassLoader cl) {
+        JdkProxyHandler handler = new JdkProxyHandler(object);
         return Proxy.newProxyInstance( cl == null ? JclUtils.class.getClassLoader() : cl, interfaces, handler );
     }
 }

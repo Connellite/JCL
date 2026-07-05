@@ -27,10 +27,10 @@ public interface JclContextLoader {
     /**
      * Loads the context
      */
-    public void loadContext();
+    void loadContext();
 
     /**
      * Clears the context
      */
-    public void unloadContext();
+    void unloadContext();
 }

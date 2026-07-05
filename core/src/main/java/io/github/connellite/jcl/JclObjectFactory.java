@@ -31,17 +31,18 @@ import io.github.connellite.jcl.exception.JclException;
  * @author Kamran Zafar
  * 
  */
-@SuppressWarnings("unchecked")
 public class JclObjectFactory {
-    private static JclObjectFactory jclObjectFactory = new JclObjectFactory();
-    private static boolean autoProxy;
+    private static boolean autoProxy = Configuration.autoProxy();
     private final transient Logger logger = LoggerFactory.getLogger(JclObjectFactory.class);
+
+    private static final class Holder {
+        private static final JclObjectFactory INSTANCE = new JclObjectFactory();
+    }
 
     /**
      * private constructor
      */
     private JclObjectFactory() {
-        autoProxy = Configuration.autoProxy();
     }
 
     /**
@@ -50,7 +51,7 @@ public class JclObjectFactory {
      * @return JclObjectFactory
      */
     public static JclObjectFactory getInstance() {
-        return jclObjectFactory;
+        return Holder.INSTANCE;
     }
 
     /**
@@ -61,40 +62,38 @@ public class JclObjectFactory {
      */
     public static JclObjectFactory getInstance(boolean autoProxy) {
         JclObjectFactory.autoProxy = autoProxy;
-        return jclObjectFactory;
+        return Holder.INSTANCE;
     }
 
     /**
-     * Creates the object of the specified class from the specified class loader
-     * by invoking the default constructor
-     * 
-     * @param jcl
-     * @param className
-     * @return Object
+     * Creates an instance of the specified class using its default constructor.
+     *
+     * @param jcl class loader to load the class from
+     * @param className binary name of the class to instantiate
+     * @return new instance
      */
     public Object create(JarClassLoader jcl, String className) {
         return create( jcl, className, (Object[]) null );
     }
 
     /**
-     * Creates the object of the specified class from the specified class loader
-     * by invoking the right arguments-constructor
-     * 
-     * @param jcl
-     * @param className
-     * @param args
-     * @return Object
+     * Creates an instance of the specified class using a matching constructor.
+     *
+     * @param jcl class loader to load the class from
+     * @param className binary name of the class to instantiate
+     * @param args constructor arguments
+     * @return new instance
      */
     public Object create(JarClassLoader jcl, String className, Object... args) {
         if (args == null || args.length == 0) {
             try {
-                return newInstance( jcl.loadClass( className ).newInstance() );
+                return newInstance( jcl.loadClass( className ).getDeclaredConstructor().newInstance() );
             } catch (Throwable e) {
                 throw new JclException( e );
             }
         }
 
-        Class[] types = new Class[args.length];
+        Class<?>[] types = new Class<?>[args.length];
 
         for (int i = 0; i < args.length; i++)
             types[i] = args[i].getClass();
@@ -103,22 +102,21 @@ public class JclObjectFactory {
     }
 
     /**
-     * Creates the object of the specified class from the specified class loader
-     * by invoking the right arguments-constructor based on the passed types
-     * parameter
-     * 
-     * @param jcl
-     * @param className
-     * @param args
-     * @param types
-     * @return Object
+     * Creates an instance of the specified class using a constructor matched by
+     * parameter types.
+     *
+     * @param jcl class loader to load the class from
+     * @param className binary name of the class to instantiate
+     * @param args constructor arguments
+     * @param types constructor parameter types
+     * @return new instance
      */
-    public Object create(JarClassLoader jcl, String className, Object[] args, Class[] types) {
+    public Object create(JarClassLoader jcl, String className, Object[] args, Class<?>[] types) {
         Object obj = null;
 
         if (args == null || args.length == 0) {
             try {
-                obj = jcl.loadClass( className ).newInstance();
+                obj = jcl.loadClass( className ).getDeclaredConstructor().newInstance();
             } catch (Throwable e) {
                 throw new JclException( e );
             }
@@ -134,14 +132,13 @@ public class JclObjectFactory {
     }
 
     /**
-     * Creates the object of the specified class from the specified class loader
-     * by invoking the right static factory method
-     * 
-     * @param jcl
-     * @param className
-     * @param methodName
-     * @param args
-     * @return Object
+     * Creates an instance via a static factory method with no arguments.
+     *
+     * @param jcl class loader to load the class from
+     * @param className binary name of the class
+     * @param methodName static factory method name
+     * @param args method arguments
+     * @return object returned by the factory method
      */
     public Object create(JarClassLoader jcl, String className, String methodName, Object... args) {
         if (args == null || args.length == 0) {
@@ -151,7 +148,7 @@ public class JclObjectFactory {
                 throw new JclException( e );
             }
         }
-        Class[] types = new Class[args.length];
+        Class<?>[] types = new Class<?>[args.length];
 
         for (int i = 0; i < args.length; i++)
             types[i] = args[i].getClass();
@@ -160,17 +157,16 @@ public class JclObjectFactory {
     }
 
     /**
-     * Creates the object of the specified class from the specified class loader
-     * by invoking the right static factory method based on the types parameter
-     * 
-     * @param jcl
-     * @param className
-     * @param methodName
-     * @param args
-     * @param types
-     * @return Object
+     * Creates an instance via a static factory method matched by parameter types.
+     *
+     * @param jcl class loader to load the class from
+     * @param className binary name of the class
+     * @param methodName static factory method name
+     * @param args method arguments
+     * @param types method parameter types
+     * @return object returned by the factory method
      */
-    public Object create(JarClassLoader jcl, String className, String methodName, Object[] args, Class[] types) {
+    public Object create(JarClassLoader jcl, String className, String methodName, Object[] args, Class<?>[] types) {
         Object obj = null;
         if (args == null || args.length == 0) {
             try {
@@ -198,32 +194,32 @@ public class JclObjectFactory {
     private Object newInstance(Object object) {
         if (autoProxy) {
 
-            Class superClass = null;
+            Class<?> superClass = null;
 
             // Check class
             try {
                 Class.forName( object.getClass().getSuperclass().getName() );
                 superClass = object.getClass().getSuperclass();
-            } catch (ClassNotFoundException e) {
+            } catch (ClassNotFoundException ignored) {
             }
 
-            Class[] interfaces = object.getClass().getInterfaces();
+            Class<?>[] interfaces = object.getClass().getInterfaces();
 
-            List<Class> il = new ArrayList<Class>();
+            List<Class<?>> il = new ArrayList<>();
 
             // Check available interfaces
-            for (Class i : interfaces) {
+            for (Class<?> i : interfaces) {
                 try {
-                    Class.forName( i.getClass().getName() );
+                    Class.forName( i.getName() );
                     il.add( i );
-                } catch (ClassNotFoundException e) {
+                } catch (ClassNotFoundException ignored) {
                 }
             }
 
             logger.debug( "Class: {}", superClass );
             logger.debug( "Class Interfaces: {}", il );
 
-            if (superClass == null && il.size() == 0) {
+            if (superClass == null && il.isEmpty()) {
                 throw new JclException( "Neither the class [" + object.getClass().getSuperclass().getName()
                         + "] nor all the implemented interfaces found in the current classloader" );
             }

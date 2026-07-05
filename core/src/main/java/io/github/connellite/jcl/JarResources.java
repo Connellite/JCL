@@ -25,11 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 
 import org.slf4j.Logger;
@@ -53,7 +51,7 @@ public class JarResources {
      * Default constructor
      */
     public JarResources() {
-        jarEntryContents = new HashMap<String, JclJarEntry>();
+        jarEntryContents = new HashMap<>();
         collisionAllowed = Configuration.suppressCollisionException();
     }
 
@@ -69,7 +67,7 @@ public class JarResources {
             throw new JclException( "non-URL accessible resource" );
         }          
             try {
-                return new URL( entry.getBaseUrl().toString() + name );
+                return new URL( entry.getBaseUrl() + name );
             } catch (MalformedURLException e) {
                 throw new JclException( e );
             }
@@ -99,7 +97,7 @@ public class JarResources {
      */
     public Map<String, byte[]> getResources() {
       
-      Map<String, byte[]> resourcesAsBytes = new HashMap<String, byte[]>(jarEntryContents.size());
+      Map<String, byte[]> resourcesAsBytes = new HashMap<>(jarEntryContents.size());
       
       for (Map.Entry<String, JclJarEntry> entry : jarEntryContents.entrySet()) {
         resourcesAsBytes.put(entry.getKey(), entry.getValue().getResourceBytes());
@@ -116,21 +114,14 @@ public class JarResources {
     public void loadJar(String jarFile) {
         logger.debug( "Loading jar: {}", jarFile );
 
-        FileInputStream fis = null;
         try {
             File file = new File( jarFile );
             String baseUrl = "jar:" + file.toURI().toString() + "!/";
-            fis = new FileInputStream( file );
-            loadJar(baseUrl, fis);
+            try (FileInputStream fis = new FileInputStream( file )) {
+                loadJar( baseUrl, fis, false );
+            }
         } catch (IOException e) {
             throw new JclException( e );
-        } finally {
-            if (fis != null)
-                try {
-                    fis.close();
-                } catch (IOException e) {
-                    throw new JclException( e );
-                }
         }
     }
 
@@ -142,20 +133,13 @@ public class JarResources {
     public void loadJar(URL url) {
         logger.debug( "Loading jar: {}", url.toString() );
 
-        InputStream in = null;
         try {
-            String baseUrl = "jar:" + url.toString() + "!/";
-            in = url.openStream();
-            loadJar( baseUrl, in );
+            String baseUrl = "jar:" + url + "!/";
+            try (InputStream in = url.openStream()) {
+                loadJar( baseUrl, in, false );
+            }
         } catch (IOException e) {
             throw new JclException( e );
-        } finally {
-            if (in != null)
-                try {
-                    in.close();
-                } catch (IOException e) {
-                    throw new JclException( e );
-                }
         }
     }
 
@@ -169,70 +153,55 @@ public class JarResources {
      * 
      */
     public void loadJar(String argBaseUrl, InputStream jarStream, boolean closeStream) {
-
-        BufferedInputStream bis = null;
-        JarInputStream jis = null;
-
         try {
-            bis = new BufferedInputStream( jarStream );
-            jis = new JarInputStream( bis );
-
-            JarEntry jarEntry = null;
-            while (( jarEntry = jis.getNextJarEntry() ) != null) {
-                logger.debug( dump( jarEntry ) );
-
-                if (jarEntry.isDirectory()) {
-                    continue;
+            if (closeStream) {
+                try (BufferedInputStream bis = new BufferedInputStream( jarStream );
+                     JarInputStream jis = new JarInputStream( bis )) {
+                    readJarEntries( argBaseUrl, jis );
                 }
-
-                if (jarEntryContents.containsKey( jarEntry.getName() )) {
-                    if (!collisionAllowed)
-                        throw new JclException( "Class/Resource " + jarEntry.getName() + " already loaded" );
-                    else {
-                        logger.debug( "Class/Resource {} already loaded; ignoring entry...", jarEntry.getName() );
-                        continue;
-                    }
-                }
-
-                logger.debug( "Entry Name: {}, Entry Size: {}", jarEntry.getName(), jarEntry.getSize() );
-
-                byte[] b = new byte[2048];
-                ByteArrayOutputStream out = new ByteArrayOutputStream();
-
-                int len = 0;
-                while (( len = jis.read( b ) ) > 0) {
-                    out.write( b, 0, len );
-                }
-
-                // add to internal resource HashMap
-                JclJarEntry entry = new JclJarEntry();
-                entry.setBaseUrl(argBaseUrl);
-                entry.setResourceBytes(out.toByteArray());
-                jarEntryContents.put( jarEntry.getName(), entry );
-
-                logger.debug("{}: size={}, csize={}", jarEntry.getName(), out.size(), jarEntry.getCompressedSize());
-
-                out.close();
+            } else {
+                readJarEntries( argBaseUrl, new JarInputStream( new BufferedInputStream( jarStream ) ) );
             }
         } catch (IOException e) {
             throw new JclException( e );
         } catch (NullPointerException e) {
             logger.debug( "Done loading." );
-        } finally {
-            if(closeStream) {
-                if (jis != null)
-                    try {
-                        jis.close();
-                    } catch (IOException e) {
-                        throw new JclException(e);
-                    }
+        }
+    }
 
-                if (bis != null)
-                    try {
-                        bis.close();
-                    } catch (IOException e) {
-                        throw new JclException(e);
-                    }
+    private void readJarEntries(String argBaseUrl, JarInputStream jis) throws IOException {
+        JarEntry jarEntry;
+        while (( jarEntry = jis.getNextJarEntry() ) != null) {
+            logger.debug( dump( jarEntry ) );
+
+            if (jarEntry.isDirectory()) {
+                continue;
+            }
+
+            if (jarEntryContents.containsKey( jarEntry.getName() )) {
+                if (!collisionAllowed)
+                    throw new JclException( "Class/Resource " + jarEntry.getName() + " already loaded" );
+                else {
+                    logger.debug( "Class/Resource {} already loaded; ignoring entry...", jarEntry.getName() );
+                    continue;
+                }
+            }
+
+            logger.debug( "Entry Name: {}, Entry Size: {}", jarEntry.getName(), jarEntry.getSize() );
+
+            byte[] b = new byte[2048];
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                int len;
+                while (( len = jis.read( b ) ) > 0) {
+                    out.write( b, 0, len );
+                }
+
+                JclJarEntry entry = new JclJarEntry();
+                entry.setBaseUrl( argBaseUrl );
+                entry.setResourceBytes( out.toByteArray() );
+                jarEntryContents.put( jarEntry.getName(), entry );
+
+                logger.debug( "{}: size={}, csize={}", jarEntry.getName(), out.size(), jarEntry.getCompressedSize() );
             }
         }
     }
@@ -244,7 +213,7 @@ public class JarResources {
      * @return String
      */
     private String dump(JarEntry je) {
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         if (je.isDirectory()) {
             sb.append( "d " );
         } else {
@@ -259,11 +228,11 @@ public class JarResources {
 
         sb.append( je.getName() );
         sb.append( "\t" );
-        sb.append( "" + je.getSize() );
+        sb.append(je.getSize());
         if (je.getMethod() == JarEntry.DEFLATED) {
-            sb.append( "/" + je.getCompressedSize() );
+            sb.append("/").append(je.getCompressedSize());
         }
 
-        return ( sb.toString() );
+        return sb.toString();
     }
 }

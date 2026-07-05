@@ -50,9 +50,9 @@ public class DelegateProxyClassLoader extends ProxyClassLoader {
 		this.order = 15;
 	}
 
-	@SuppressWarnings("rawtypes")
-	public Class loadClass(String className, boolean resolveIt) {
-		Class result;
+	@Override
+	public Class<?> loadClass(String className, boolean resolveIt) {
+		Class<?> result;
 		try {
 			result = delegate.loadClass(className, resolveIt);
 		} catch (ClassNotFoundException e) {

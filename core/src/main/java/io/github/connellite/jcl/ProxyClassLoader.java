@@ -40,36 +40,36 @@ public abstract class ProxyClassLoader implements Comparable<ProxyClassLoader> {
     }
 
     /**
-     * Set loading order
-     * 
-     * @param order
+     * Sets delegate loading order; lower values are consulted first.
+     *
+     * @param order loading order for this delegate
      */
     public void setOrder(int order) {
         this.order = order;
     }
 
     /**
-     * Loads the class
-     * 
-     * @param className
-     * @param resolveIt
-     * @return class
+     * Loads the class from this delegate loader.
+     *
+     * @param className binary name of the class to load
+     * @param resolveIt whether to resolve the class if found
+     * @return the loaded class, or {@code null} if not found in this delegate
      */
-    public abstract Class loadClass(String className, boolean resolveIt);
+    public abstract Class<?> loadClass(String className, boolean resolveIt);
 
     /**
-     * Loads the resource
-     * 
-     * @param name
-     * @return InputStream
+     * Loads the resource from this delegate loader.
+     *
+     * @param name resource name
+     * @return resource stream, or {@code null} if not found
      */
     public abstract InputStream loadResource(String name);
 
     /**
-     * Finds the resource
+     * Finds the resource URL in this delegate loader.
      *
-     * @param name
-     * @return InputStream
+     * @param name resource name
+     * @return resource URL, or {@code null} if not found
      */
     public abstract URL findResource(String name);
 

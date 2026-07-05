@@ -54,15 +54,12 @@ public class ClasspathResources extends JarResources {
     private void loadResourceContent(String resource, String pack) {
         File resourceFile = new File( resource );
         String entryName = "";
-        FileInputStream fis = null;
-        byte[] content = null;
-        try {
-            fis = new FileInputStream( resourceFile );
-            content = new byte[(int) resourceFile.length()];
+        try (FileInputStream fis = new FileInputStream( resourceFile )) {
+            byte[] content = new byte[(int) resourceFile.length()];
 
             if (fis.read( content ) != -1) {
 
-                if (pack.length() > 0) {
+                if (!pack.isEmpty()) {
                     entryName = pack + "/";
                 }
 
@@ -93,12 +90,6 @@ public class ClasspathResources extends JarResources {
             }
         } catch (IOException e) {
             throw new JclException( e );
-        } finally {
-            try {
-                fis.close();
-            } catch (IOException e) {
-                throw new JclException( e );
-            }
         }
     }
 
@@ -115,14 +106,10 @@ public class ClasspathResources extends JarResources {
             return;
         }
 
-        InputStream stream = null;
-        ByteArrayOutputStream out = null;
-        try {
-            stream = url.openStream();
-            out = new ByteArrayOutputStream();
-
+        try (InputStream stream = url.openStream();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             int byt;
-            while (( ( byt = stream.read() ) != -1 )) {
+            while (( byt = stream.read() ) != -1) {
                 out.write( byt );
             }
 
@@ -130,9 +117,9 @@ public class ClasspathResources extends JarResources {
 
             if (jarEntryContents.containsKey( url.toString() )) {
                 if (!collisionAllowed)
-                    throw new JclException( "Resource " + url.toString() + " already loaded" );
+                    throw new JclException( "Resource " + url + " already loaded" );
                 else {
-                    logger.debug( "Resource {} already loaded; ignoring entry...", url.toString() );
+                    logger.debug( "Resource {} already loaded; ignoring entry...", url);
                     return;
                 }
             }
@@ -144,19 +131,6 @@ public class ClasspathResources extends JarResources {
             jarEntryContents.put( url.toString(), entry );            
         } catch (IOException e) {
             throw new JclException( e );
-        } finally {
-            if (out != null)
-                try {
-                    out.close();
-                } catch (IOException e) {
-                    throw new JclException( e );
-                }
-            if (stream != null)
-                try {
-                    stream.close();
-                } catch (IOException e) {
-                    throw new JclException( e );
-                }
         }
     }
 
@@ -168,13 +142,10 @@ public class ClasspathResources extends JarResources {
      */
     private void loadClassContent(String clazz, String pack) {
         File cf = new File( clazz );
-        FileInputStream fis = null;
         String entryName = "";
-        byte[] content = null;
 
-        try {
-            fis = new FileInputStream( cf );
-            content = new byte[(int) cf.length()];
+        try (FileInputStream fis = new FileInputStream( cf )) {
+            byte[] content = new byte[(int) cf.length()];
 
             if (fis.read( content ) != -1) {
                 entryName = pack + "/" + cf.getName();
@@ -196,15 +167,7 @@ public class ClasspathResources extends JarResources {
             }
         } catch (IOException e) {
             throw new JclException( e );
-        } finally {
-            if (fis != null)
-                try {
-                    fis.close();
-                } catch (IOException e) {
-                    throw new JclException( e );
-                }
         }
-
     }
 
     /**
@@ -272,7 +235,7 @@ public class ClasspathResources extends JarResources {
 
                 if (fl.isDirectory()) {
 
-                    if (!pn.equals( "" ))
+                    if (!pn.isEmpty())
                         pn = pn + "/";
 
                     pn = pn + fl.getName();

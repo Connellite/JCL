@@ -35,7 +35,7 @@ import io.github.connellite.jcl.JclUtils;
  */
 public class CglibProxyProvider implements ProxyProvider {
 
-    private class CglibProxyHandler implements MethodInterceptor {
+    private static class CglibProxyHandler implements MethodInterceptor {
         private final Object delegate;
 
         public CglibProxyHandler(Object delegate) {
@@ -54,8 +54,8 @@ public class CglibProxyProvider implements ProxyProvider {
         }
     }
 
-    public Object createProxy(Object object, Class superClass, Class[] interfaces, ClassLoader cl) {
-        CglibProxyHandler handler = new CglibProxyHandler( object );
+    public Object createProxy(Object object, Class<?> superClass, Class<?>[] interfaces, ClassLoader cl) {
+        CglibProxyHandler handler = new CglibProxyHandler(object);
 
         Enhancer enhancer = new Enhancer();
 
@@ -66,9 +66,9 @@ public class CglibProxyProvider implements ProxyProvider {
         enhancer.setCallback( handler );
 
         if( interfaces != null ) {
-            List<Class> il = new ArrayList<Class>();
+            List<Class<?>> il = new ArrayList<>();
 
-            for( Class i : interfaces ) {
+            for( Class<?> i : interfaces ) {
                 if( i.isInterface() ) {
                     il.add( i );
                 }

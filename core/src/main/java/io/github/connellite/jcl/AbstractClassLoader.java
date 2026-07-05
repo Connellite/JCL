@@ -22,7 +22,6 @@ import io.github.connellite.jcl.exception.JclException;
 import io.github.connellite.jcl.exception.ResourceNotFoundException;
 import io.github.connellite.jcl.utils.Utils;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.*;
@@ -35,14 +34,13 @@ import java.util.regex.Pattern;
  *
  * @author Kamran Zafar
  */
-@SuppressWarnings("unchecked")
 public abstract class AbstractClassLoader extends ClassLoader {
 
     /**
      * Concurrent loader chain. Iteration must not hold a monitor while
      * delegating to child loaders because defineClass may re-enter loadClass.
      */
-    protected final NavigableSet<ProxyClassLoader> loaders = new ConcurrentSkipListSet<ProxyClassLoader>();
+    protected final NavigableSet<ProxyClassLoader> loaders = new ConcurrentSkipListSet<>();
 
     private final ProxyClassLoader systemLoader = new SystemLoader();
     private final ProxyClassLoader parentLoader = new ParentLoader();
@@ -80,7 +78,7 @@ public abstract class AbstractClassLoader extends ClassLoader {
     }
 
     private List<ProxyClassLoader> getLoaders() {
-        List<ProxyClassLoader> snapshot = new ArrayList<ProxyClassLoader>(loaders);
+        List<ProxyClassLoader> snapshot = new ArrayList<>(loaders);
         Collections.sort(snapshot);
         return snapshot;
     }
@@ -91,8 +89,8 @@ public abstract class AbstractClassLoader extends ClassLoader {
      * @see java.lang.ClassLoader#loadClass(java.lang.String)
      */
     @Override
-    public Class loadClass(String className) throws ClassNotFoundException {
-        return (loadClass(className, true));
+    public Class<?> loadClass(String className) throws ClassNotFoundException {
+        return loadClass(className, true);
     }
 
     /**
@@ -103,11 +101,11 @@ public abstract class AbstractClassLoader extends ClassLoader {
      * @see java.lang.ClassLoader#loadClass(java.lang.String, boolean)
      */
     @Override
-    public Class loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
-        if (className == null || className.trim().equals(""))
+    public Class<?> loadClass(String className, boolean resolveIt) throws ClassNotFoundException {
+        if (className == null || className.isBlank())
             return null;
 
-        Class clazz = null;
+        Class<?> clazz = null;
 
         // Check osgi boot delegation
         if (osgiBootLoader.isEnabled()) {
@@ -139,7 +137,7 @@ public abstract class AbstractClassLoader extends ClassLoader {
      */
     @Override
     public URL getResource(String name) {
-        if (name == null || name.trim().equals(""))
+        if (name == null || name.isBlank())
             return null;
 
         URL url = null;
@@ -164,12 +162,12 @@ public abstract class AbstractClassLoader extends ClassLoader {
     }
 
     @Override
-    public Enumeration<URL> getResources(String name) throws IOException {
-        if (name == null || name.trim().equals("")) {
+    public Enumeration<URL> getResources(String name) {
+        if (name == null || name.isBlank()) {
             return Collections.emptyEnumeration();
         }
 
-        Vector<URL> urlVector = new Vector<URL>();
+        Vector<URL> urlVector = new Vector<>();
         URL url = null;
 
         // Check osgi boot delegation
@@ -204,7 +202,7 @@ public abstract class AbstractClassLoader extends ClassLoader {
      */
     @Override
     public InputStream getResourceAsStream(String name) {
-        if (name == null || name.trim().equals(""))
+        if (name == null || name.isBlank())
             return null;
 
         InputStream is = null;
@@ -241,8 +239,8 @@ public abstract class AbstractClassLoader extends ClassLoader {
         }
 
         @Override
-        public Class loadClass(String className, boolean resolveIt) {
-            Class result;
+        public Class<?> loadClass(String className, boolean resolveIt) {
+            Class<?> result;
 
             try {
                 result = findSystemClass(className);
@@ -297,8 +295,8 @@ public abstract class AbstractClassLoader extends ClassLoader {
         }
 
         @Override
-        public Class loadClass(String className, boolean resolveIt) {
-            Class result;
+        public Class<?> loadClass(String className, boolean resolveIt) {
+            Class<?> result;
 
             try {
                 result = getParent().loadClass(className);
@@ -343,7 +341,7 @@ public abstract class AbstractClassLoader extends ClassLoader {
     /**
      * Current class loader
      */
-    class CurrentLoader extends ProxyClassLoader {
+    static class CurrentLoader extends ProxyClassLoader {
         private final Logger logger = LoggerFactory.getLogger(CurrentLoader.class);
 
         public CurrentLoader() {
@@ -352,8 +350,8 @@ public abstract class AbstractClassLoader extends ClassLoader {
         }
 
         @Override
-        public Class loadClass(String className, boolean resolveIt) {
-            Class result;
+        public Class<?> loadClass(String className, boolean resolveIt) {
+            Class<?> result;
 
             try {
                 result = getClass().getClassLoader().loadClass(className);
@@ -400,7 +398,7 @@ public abstract class AbstractClassLoader extends ClassLoader {
     /**
      * Current class loader
      */
-    class ThreadContextLoader extends ProxyClassLoader {
+    static class ThreadContextLoader extends ProxyClassLoader {
         private final Logger logger = LoggerFactory.getLogger(ThreadContextLoader.class);
 
         public ThreadContextLoader() {
@@ -409,8 +407,8 @@ public abstract class AbstractClassLoader extends ClassLoader {
         }
 
         @Override
-        public Class loadClass(String className, boolean resolveIt) {
-            Class result;
+        public Class<?> loadClass(String className, boolean resolveIt) {
+            Class<?> result;
             try {
                 result = Thread.currentThread().getContextClassLoader().loadClass(className);
             } catch (ClassNotFoundException e) {
@@ -471,8 +469,8 @@ public abstract class AbstractClassLoader extends ClassLoader {
         }
 
         @Override
-        public Class loadClass(String className, boolean resolveIt) {
-            Class clazz = null;
+        public Class<?> loadClass(String className, boolean resolveIt) {
+            Class<?> clazz = null;
 
             if (enabled && isPartOfOsgiBootDelegation(className)) {
                 clazz = getParentLoader().loadClass(className, resolveIt);

@@ -22,5 +22,5 @@ package io.github.connellite.jcl.proxy;
  * 
  */
 public interface ProxyProvider {
-    public Object createProxy(Object object, Class superClass, Class[] interfaces, ClassLoader cl);
+    Object createProxy(Object object, Class<?> superClass, Class<?>[] interfaces, ClassLoader cl);
 }

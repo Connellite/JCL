@@ -34,5 +34,5 @@ public interface PathResolver {
      * @param path
      * @return Object[]
      */
-    public Object[] resolvePath(String path);
+    Object[] resolvePath(String path);
 }

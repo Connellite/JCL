@@ -38,12 +38,11 @@ import io.github.connellite.jcl.exception.ResourceNotFoundException;
  * @author Kamran Zafar
  * 
  */
-@SuppressWarnings("unchecked")
 public class JarClassLoader extends AbstractClassLoader {
     /**
      * Class cache
      */
-    protected final Map<String, Class> classes;
+    protected final Map<String, Class<?>> classes;
 
     protected final ClasspathResources classpathResources;
     private char classNameReplacementChar;
@@ -54,14 +53,14 @@ public class JarClassLoader extends AbstractClassLoader {
 
     public JarClassLoader() {
         classpathResources = new ClasspathResources();
-        classes = new ConcurrentHashMap<String, Class>();
+        classes = new ConcurrentHashMap<>();
         initialize();
     }
 
     public JarClassLoader(final ClassLoader parent) {
         super(parent);
         classpathResources = new ClasspathResources();
-        classes = new ConcurrentHashMap<String, Class>();
+        classes = new ConcurrentHashMap<>();
         initialize();
     }
 
@@ -74,9 +73,9 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
-     * Loads classes from different sources
-     * 
-     * @param sources
+     * Loads classes from different sources.
+     *
+     * @param sources classpath entries to add
      */
     public JarClassLoader(Object[] sources) {
         this();
@@ -84,19 +83,19 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
-     * Loads classes from different sources
-     * 
-     * @param sources
+     * Loads classes from different sources.
+     *
+     * @param sources classpath entries to add
      */
-    public JarClassLoader(List sources) {
+    public JarClassLoader(List<?> sources) {
         this();
         addAll( sources );
     }
 
     /**
-     * Add all jar/class sources
-     * 
-     * @param sources
+     * Adds all jar/class sources.
+     *
+     * @param sources classpath entries to add
      */
     public void addAll(Object[] sources) {
         for (Object source : sources) {
@@ -105,20 +104,20 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
-     * Add all jar/class sources
-     * 
-     * @param sources
+     * Adds all jar/class sources.
+     *
+     * @param sources classpath entries to add
      */
-    public void addAll(List sources) {
+    public void addAll(List<?> sources) {
         for (Object source : sources) {
             add( source );
         }
     }
 
     /**
-     * Loads local/remote source
-     * 
-     * @param source
+     * Adds a local or remote classpath source.
+     *
+     * @param source jar path, URL, or input stream
      */
     public void add(Object source) {
         if (source instanceof InputStream)
@@ -133,27 +132,27 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
-     * Loads local/remote resource
-     * 
-     * @param resourceName
+     * Adds a local or remote classpath resource.
+     *
+     * @param resourceName path or URL of the resource to load
      */
     public void add(String resourceName) {
         classpathResources.loadResource( resourceName );
     }
 
     /**
-     * Loads classes from InputStream
-     * 
-     * @param jarStream
+     * Adds classes from a JAR input stream.
+     *
+     * @param jarStream JAR content stream
      */
     public void add(InputStream jarStream) {
         classpathResources.loadJar( null, jarStream, false );
     }
 
     /**
-     * Loads local/remote resource
-     * 
-     * @param url
+     * Adds a local or remote classpath resource.
+     *
+     * @param url resource URL
      */
     public void add(URL url) {
         classpathResources.loadResource( url );
@@ -161,10 +160,10 @@ public class JarClassLoader extends AbstractClassLoader {
 
     /**
      * Reads the class bytes from different local and remote resources using
-     * ClasspathResources
-     * 
-     * @param className
-     * @return byte[]
+     * {@link ClasspathResources}.
+     *
+     * @param className binary name of the class to load
+     * @return class bytes, or {@code null} if not found
      */
     protected byte[] loadClassBytes(String className) {
         className = formatClassName( className );
@@ -173,10 +172,10 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
-     * Attempts to unload class, it only unloads the locally loaded classes by
-     * JCL
-     * 
-     * @param className
+     * Attempts to unload a class; only locally loaded JCL classes are removed
+     * from the cache.
+     *
+     * @param className binary name of the class to unload
      */
     public void unloadClass(String className) {
         logger.debug( "Unloading class {}", className );
@@ -201,8 +200,10 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
-     * @param className
-     * @return String
+     * Converts a binary class name to the resource path used by {@link ClasspathResources}.
+     *
+     * @param className binary name of the class
+     * @return resource path ending in {@code .class}
      */
     protected String formatClassName(String className) {
         className = className.replace( '/', '~' );
@@ -273,8 +274,8 @@ public class JarClassLoader extends AbstractClassLoader {
         }
 
         @Override
-        public Class loadClass(String className, boolean resolveIt) {
-            Class result = classes.get( className );
+        public Class<?> loadClass(String className, boolean resolveIt) {
+            Class<?> result = classes.get( className );
             if (result != null) {
                 logger.debug( "Returning local loaded class [{}] from cache", className );
                 return result;
@@ -370,7 +371,7 @@ public class JarClassLoader extends AbstractClassLoader {
      * 
      * @return Map
      */
-    public Map<String, Class> getLoadedClasses() {
+    public Map<String, Class<?>> getLoadedClasses() {
         return Collections.unmodifiableMap( classes );
     }
 }
