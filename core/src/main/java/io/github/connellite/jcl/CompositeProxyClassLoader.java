@@ -34,7 +34,7 @@ import java.util.List;
  * 
  */
 public class CompositeProxyClassLoader extends ProxyClassLoader {
-	private final List<ProxyClassLoader> proxyClassLoaders = new ArrayList<ProxyClassLoader>();
+	private final List<ProxyClassLoader> proxyClassLoaders = new ArrayList<>();
 
 	/**
 	 * Build a new instance of CompositeProxyClassLoader.java.

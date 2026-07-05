@@ -18,8 +18,8 @@
 package io.github.connellite.jcl.context;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.github.connellite.jcl.JarClassLoader;
 import io.github.connellite.jcl.exception.JclContextException;
@@ -32,8 +32,7 @@ import io.github.connellite.jcl.exception.JclContextException;
  * 
  */
 public class JclContext {
-    private static final Map<String, JarClassLoader> loaders = Collections
-            .synchronizedMap( new HashMap<String, JarClassLoader>() );
+    private static final Map<String, JarClassLoader> loaders = new ConcurrentHashMap<String, JarClassLoader>();
     public static final String DEFAULT_NAME = "jcl";
 
     public JclContext() {
@@ -57,10 +56,9 @@ public class JclContext {
      * @param jcl
      */
     public void addJcl(String name, JarClassLoader jcl) {
-        if( loaders.containsKey( name ) )
+        JarClassLoader existing = loaders.putIfAbsent( name, jcl );
+        if( existing != null )
             throw new JclContextException( "JarClassLoader[" + name + "] already exist. Name must be unique" );
-
-        loaders.put( name, jcl );
     }
 
     /**

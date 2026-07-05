@@ -21,11 +21,10 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,20 +48,20 @@ public class JarClassLoader extends AbstractClassLoader {
     protected final ClasspathResources classpathResources;
     private char classNameReplacementChar;
     private final ProxyClassLoader localLoader = new LocalLoader();
-    private final Set<String> definedPackages = Collections.synchronizedSet(new HashSet<>() );
+    private final Set<String> definedPackages = ConcurrentHashMap.newKeySet();
 
     private final transient Logger logger = LoggerFactory.getLogger( JarClassLoader.class );
 
     public JarClassLoader() {
         classpathResources = new ClasspathResources();
-        classes = Collections.synchronizedMap( new HashMap<String, Class>() );
+        classes = new ConcurrentHashMap<String, Class>();
         initialize();
     }
 
     public JarClassLoader(final ClassLoader parent) {
         super(parent);
         classpathResources = new ClasspathResources();
-        classes = Collections.synchronizedMap( new HashMap<String, Class>() );
+        classes = new ConcurrentHashMap<String, Class>();
         initialize();
     }
 
@@ -275,41 +274,46 @@ public class JarClassLoader extends AbstractClassLoader {
 
         @Override
         public Class loadClass(String className, boolean resolveIt) {
-            Class result = null;
-            byte[] classBytes;
-
-            result = classes.get( className );
+            Class result = classes.get( className );
             if (result != null) {
                 logger.debug( "Returning local loaded class [{}] from cache", className );
                 return result;
             }
 
-            classBytes = loadClassBytes( className );
-            if (classBytes == null) {
-                return null;
-            }
-
-            ensurePackageDefined( className );
-
-            result = defineClass( className, classBytes, 0, classBytes.length );
-
-            if (result == null) {
-                return null;
-            }
-
-            if (className.endsWith( ".package-info" )) {
-                int lastDotIndex = className.lastIndexOf( '.' );
-                if (lastDotIndex > 0) {
-                    definedPackages.add( className.substring( 0, lastDotIndex ) );
+            synchronized (getClassLoadingLock( className )) {
+                result = classes.get( className );
+                if (result != null) {
+                    logger.debug( "Returning local loaded class [{}] from cache", className );
+                    return result;
                 }
+
+                byte[] classBytes = loadClassBytes( className );
+                if (classBytes == null) {
+                    return null;
+                }
+
+                ensurePackageDefined( className );
+
+                result = defineClass( className, classBytes, 0, classBytes.length );
+
+                if (result == null) {
+                    return null;
+                }
+
+                if (className.endsWith( ".package-info" )) {
+                    int lastDotIndex = className.lastIndexOf( '.' );
+                    if (lastDotIndex > 0) {
+                        definedPackages.add( className.substring( 0, lastDotIndex ) );
+                    }
+                }
+
+                if (resolveIt)
+                    resolveClass( result );
+
+                classes.put( className, result );
+                logger.debug( "Return new local loaded class {}", className );
+                return result;
             }
-
-            if (resolveIt)
-                resolveClass( result );
-
-            classes.put( className, result );
-            logger.debug( "Return new local loaded class {}", className );
-            return result;
         }
 
         @Override

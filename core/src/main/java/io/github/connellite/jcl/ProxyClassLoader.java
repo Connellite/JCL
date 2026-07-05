@@ -19,12 +19,17 @@ package io.github.connellite.jcl;
 
 import java.io.InputStream;
 import java.net.URL;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Kamran Zafar
  * 
  */
 public abstract class ProxyClassLoader implements Comparable<ProxyClassLoader> {
+    private static final AtomicLong SEQUENCE = new AtomicLong();
+
+    private final long sequence = SEQUENCE.getAndIncrement();
+
     // Default order
     protected int order = 5;
     // Enabled by default
@@ -77,6 +82,15 @@ public abstract class ProxyClassLoader implements Comparable<ProxyClassLoader> {
     }
 
     public int compareTo(ProxyClassLoader o) {
-        return order - o.getOrder();
+        if (this == o) {
+            return 0;
+        }
+
+        int result = Integer.compare(order, o.getOrder());
+        if (result != 0) {
+            return result;
+        }
+
+        return Long.compare(sequence, o.sequence);
     }
 }
