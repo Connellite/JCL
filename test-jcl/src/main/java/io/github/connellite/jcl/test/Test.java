@@ -34,6 +34,10 @@ public class Test implements Serializable, TestInterface {
         return hello;
     }
 
+    public String getClassLoaderName() {
+        return getClass().getClassLoader().getClass().getName();
+    }
+
     public String getFirstName() {
         return firstName;
     }
