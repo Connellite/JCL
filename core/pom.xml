@@ -28,10 +28,6 @@
             <artifactId>cglib-nodep</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.kamranzafar.commons</groupId>
-            <artifactId>object-cloner</artifactId>
-        </dependency>
-        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>

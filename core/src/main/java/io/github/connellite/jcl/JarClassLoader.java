@@ -22,9 +22,10 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.jar.JarEntry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ public class JarClassLoader extends AbstractClassLoader {
     protected final ClasspathResources classpathResources;
     private char classNameReplacementChar;
     private final ProxyClassLoader localLoader = new LocalLoader();
+    private final Set<String> definedPackages = Collections.synchronizedSet(new HashSet<>() );
 
     private final transient Logger logger = LoggerFactory.getLogger( JarClassLoader.class );
 
@@ -219,6 +221,46 @@ public class JarClassLoader extends AbstractClassLoader {
     }
 
     /**
+     * Loads {@code package-info.class} when present so package-level annotations
+     * are visible via {@link Package#getAnnotation(Class)}.
+     */
+    private void ensurePackageDefined(String className) {
+        if (className.endsWith( ".package-info" )) {
+            return;
+        }
+
+        int lastDotIndex = className.lastIndexOf( '.' );
+        if (lastDotIndex < 0) {
+            return;
+        }
+
+        String packageName = className.substring( 0, lastDotIndex );
+        if (definedPackages.contains( packageName )) {
+            return;
+        }
+
+        synchronized (definedPackages) {
+            if (definedPackages.contains( packageName )) {
+                return;
+            }
+
+            String pkgInfoClassName = packageName + ".package-info";
+            byte[] pkgInfoBytes = loadClassBytes( pkgInfoClassName );
+            if (pkgInfoBytes != null) {
+                if (!classes.containsKey( pkgInfoClassName )) {
+                    Class<?> pkgInfoClass = defineClass( pkgInfoClassName, pkgInfoBytes, 0, pkgInfoBytes.length );
+                    classes.put( pkgInfoClassName, pkgInfoClass );
+                    logger.debug( "Loaded package-info for {}", packageName );
+                }
+            } else if (getDefinedPackage(packageName) == null) {
+                definePackage( packageName, null, null, null, null, null, null, null );
+            }
+
+            definedPackages.add( packageName );
+        }
+    }
+
+    /**
      * Local class loader
      * 
      */
@@ -247,19 +289,19 @@ public class JarClassLoader extends AbstractClassLoader {
                 return null;
             }
 
+            ensurePackageDefined( className );
+
             result = defineClass( className, classBytes, 0, classBytes.length );
 
             if (result == null) {
                 return null;
             }
 
-            /*
-             * Preserve package name.
-             */
-            if (result.getPackage() == null) {
+            if (className.endsWith( ".package-info" )) {
                 int lastDotIndex = className.lastIndexOf( '.' );
-                String packageName = (lastDotIndex >= 0) ? className.substring( 0, lastDotIndex) : "";
-                definePackage( packageName, null, null, null, null, null, null, null );
+                if (lastDotIndex > 0) {
+                    definedPackages.add( className.substring( 0, lastDotIndex ) );
+                }
             }
 
             if (resolveIt)

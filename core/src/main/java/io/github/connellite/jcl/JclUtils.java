@@ -22,9 +22,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
+import io.github.connellite.jcl.cloner.ReflectionCloning;
 import io.github.connellite.jcl.exception.JclException;
 import io.github.connellite.jcl.proxy.ProxyProviderFactory;
-import org.kamranzafar.commons.cloner.ObjectCloner;
 
 /**
  * This class has some important utility methods commonly required when using
@@ -159,9 +159,7 @@ public class JclUtils {
      * @return clone
      */
     public static Object deepClone(Object original) {
-        ObjectCloner cloner = new ObjectCloner();
-
-        return cloner.deepClone( original );
+        return ReflectionCloning.clone( original );
     }
 
     /**
@@ -171,8 +169,6 @@ public class JclUtils {
      * @return clone
      */
     public static Object shallowClone(Object original) {
-        ObjectCloner cloner = new ObjectCloner();
-
-        return cloner.shallowClone( original );
+        return ReflectionCloning.shallowClone( original );
     }
 }

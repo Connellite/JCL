@@ -60,7 +60,6 @@
         <slf4j.version>1.7.36</slf4j.version>
         <cglib.version>3.3.0</cglib.version>
         <objenesis.version>3.3</objenesis.version>
-        <object-cloner.version>0.1</object-cloner.version>
         <junit.version>4.13.2</junit.version>
     </properties>
 
@@ -86,11 +85,6 @@
                 <groupId>cglib</groupId>
                 <artifactId>cglib-nodep</artifactId>
                 <version>${cglib.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.kamranzafar.commons</groupId>
-                <artifactId>object-cloner</artifactId>
-                <version>${object-cloner.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
